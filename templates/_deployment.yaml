@@ -1,0 +1,177 @@
+{{- define "common.deployment" -}}
+  {{- $common := dict "Values" .Values.common -}}
+  {{- $noCommon := omit .Values "common" -}}
+  {{- $overrides := dict "Values" $noCommon -}}
+  {{- $noValues := omit . "Values" -}}
+  {{- with merge $noValues $overrides $common -}}
+apiVersion: apps/v1
+kind: Deployment
+  {{- include "common.metadata" . }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount | default "1" }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+  {{- include "common.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- if .Values.configmap }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- end }}
+      labels:
+    {{- include "common.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- $registrySecret := default .Values.global.imagePullSecrets .Values.imagePullSecrets }}
+      {{- if $registrySecret }}
+      imagePullSecrets:
+        - name: {{ $registrySecret }}
+      {{- end }}
+      restartPolicy: {{ .Values.restartPolicy | default "Always" }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- $repository := default .Values.global.image.repository .Values.image.repository }}
+          image: "{{ $repository }}/{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.service.specs }}
+          ports:
+            {{- with .Values.service -}}
+            {{- range $port := .specs}}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort | default .port}}
+              protocol: {{ .protocol | default "TCP" }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.extraEnvs }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.configmap .Values.global.elasticApm }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "common.fullname" . }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe: {{- omit .Values.startupProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe: {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe: {{- omit .Values.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- if .Values.persistentVolume.enabled }}
+            - name: data
+              mountPath: {{ .Values.persistentVolume.containerPath }}
+            {{- end }}
+            {{- if .Values.hostPath.enabled }}
+            {{- range .Values.hostPath.values }}
+            - name: {{ .name }}
+              mountPath: {{ .containerPath }}
+              {{- if .subPath }}
+              subPath: {{ .subPath }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- range .Values.secret }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: true
+            {{- end }}
+            {{- range .Values.secretMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .path }}
+              {{- if .subPath }}
+              subPath: {{ .subPath }}
+              {{- end }}
+            {{- end }}
+            {{- range .Values.configmapMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              subPath: {{ .subPath }}
+            {{- end }}
+          {{- if .Values.isFlexibleResources.enabled }}
+          resources:
+            {{- toYaml .Values.flexibleResources | nindent 12 }}
+          {{- else }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
+          {{- if .Values.extraFirstContainer }}
+          {{- toYaml .Values.extraFirstContainer | nindent 10 }}
+          {{- end }}
+        {{- if .Values.extraContainers }}
+        {{- toYaml .Values.extraContainers | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- range .Values.secretMounts }}
+        - name: {{ .name }}
+          secret:
+            secretName: {{ .secretName }}
+        {{- end }}
+        {{- range .Values.configmapMounts }}
+        - name: {{ .name }}
+          configMap:
+            {{- if .configmapName }}
+            name: {{ .configmapName }}
+            {{- else }}
+            name: {{ include "common.fullname" $ }}-{{ .name }}
+            {{- end }}
+            defaultMode: {{ .defaultMode }}
+        {{- end }}
+        {{- if .Values.persistentVolume.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            {{- if .Values.persistentVolume.existingClaim }}
+            claimName: {{ .Values.persistentVolume.existingClaim }}
+            {{- else }}
+            claimName: {{ include "common.fullname" . }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.hostPath.enabled }}
+        {{- range .Values.hostPath.values }}
+        - name: {{ .name }}
+          hostPath: 
+            path: {{ .hostPath }}
+            type: {{ .type }}
+        {{- end }}
+        {{- end }}
+        {{- range .Values.secret }}
+        {{- if .data }}
+        - name: {{ .name }}
+          secret:
+            secretName: {{ include "common.fullname" $ }}-{{ .name }}
+            {{- if .defaultMode }}
+            defaultMode: {{ .defaultMode }}
+            {{- end }}
+            items:
+            {{- range $key, $val := .data }}
+            - key: {{ $key }}
+              path: {{ $key }}
+            {{- end }}
+        {{- end }}
+        {{- end }}
+      {{- if .Values.extraContainerVolumes }}
+      {{- toYaml .Values.extraContainerVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.extraSpec }}
+        {{- toYaml .Values.extraSpec | nindent 6 }}
+      {{- end }}
+  {{- end }}
+  {{- end }}

@@ -1,0 +1,219 @@
+nameOverride: ""
+fullnameOverride: ""
+
+#Number of desired pods. Ignored if auto-scaling is enabled.
+replicaCount: ""
+
+#Auto-scaling
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Specify how many old ReplicaSets for this Deployment you want to retain. The rest will be garbage-collected in the background.
+revisionHistoryLimit: 1
+
+# image pull secret information. Can be overridden by global values.
+imagePullSecrets: ""
+
+image:
+  repository: ""
+  name: ""
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Service spec
+service:
+  type: ClusterIP
+  annotations: { }
+  specs: [ ]
+#    - port: 8080
+#      containerPort: 8080 # if omit, default to port
+#      name: http
+#      protocol: TCP #default to TCP protocol
+
+ingress:
+  enabled: false
+  annotations: { }
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  hosts: [ ]
+  #  - host: chart-example.local
+  #    servicePort: 8000
+  #    path: /
+  #    pathType: Prefix
+  tls: [ ]
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+isFlexibleResources: 
+  enabled: false
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+extraContainers: [ ]
+extraContainerVolumes: [ ]
+
+persistentVolume:
+  enabled: false
+  storageClass: ""
+  accessMode: [ ]
+  size: ""
+  containerPath: ""
+  ## @param persistentVolume.existingClaim Name of an existing `PersistentVolumeClaim` for the service
+  ## NOTE: When it's set the rest of persistence parameters are ignored
+  ##
+  existingClaim: ""
+
+hostPath:
+  enabled: false
+
+nodeSelector: { }
+
+tolerations: [ ]
+
+affinity: { }
+
+#Applications environment variables
+configmap: { }
+
+#configmapMounts will be mount using projected volume at mountPath
+configmapMounts: [ ]
+##    - name: ""
+##      mountPath: ""
+##      defaultMode: ""
+##      data: { }
+##        configmap1.json: |-
+##          {
+##            "credential": "top-secret"
+##          }
+##        configmap2.properties: |-
+##          key=top-secret
+
+# Extra environment variables to append to deployment spec
+# Use this with external configmap / secret resource, which is not part of this chart
+extraEnvs: []
+
+#secrets will be mount using projected volume at mountPath
+secret: [ ]
+##    - name: ""
+##      mountPath: ""
+##      defaultMode: ""
+##      data: { }
+##        secret1.json: |-
+##          {
+##            "credential": "top-secret"
+##          }
+##        secret2.properties: |-
+##          key=top-secret
+
+# A list of secrets and their paths to mount inside the pod
+# use this for external secret resource, which is not part of this chart
+secretMounts: []
+#  - name: elastic-certificate-pem
+#    secretName: elastic-certificates
+#    path: /usr/share/apm-server/config/certs
+
+## Configure extra options for service containers' startup, liveness and readiness probes
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+## @param startupProbe.enabled Enable startupProbe
+## @skip startupProbe.httpGet
+## @param startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+## @param startupProbe.periodSeconds Period seconds for startupProbe
+## @param startupProbe.timeoutSeconds Timeout seconds for startupProbe
+## @param startupProbe.failureThreshold Failure threshold for startupProbe
+## @param startupProbe.successThreshold Success threshold for startupProbe
+##
+startupProbe:
+  enabled: false
+  #  httpGet:
+  #    path: ""
+  #    port: http
+  #    scheme: HTTP
+  ## If using an HTTPS-terminating load-balancer, the probes may need to behave
+  ## like the balancer to prevent HTTP 302 responses. According to the Kubernetes
+  ## docs, 302 should be considered "successful", but this issue on GitHub
+  ## (https://github.com/kubernetes/kubernetes/issues/47893) shows that it isn't.
+  ## E.g.
+  ## httpHeaders:
+  ## - name: X-Forwarded-Proto
+  ##   value: https
+  ##
+#    httpHeaders: [ ]
+#  initialDelaySeconds: 120
+#  periodSeconds: 10
+#  timeoutSeconds: 5
+#  failureThreshold: 6
+#  successThreshold: 1
+
+## @param livenessProbe.enabled Enable livenessProbe
+## @skip livenessProbe.httpGet
+## @param livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+## @param livenessProbe.periodSeconds Period seconds for livenessProbe
+## @param livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+## @param livenessProbe.failureThreshold Failure threshold for livenessProbe
+## @param livenessProbe.successThreshold Success threshold for livenessProbe
+##
+livenessProbe:
+  enabled: false
+  #  httpGet:
+  #    path: ""
+  #    port: http
+  #    scheme: HTTP
+  ## If using an HTTPS-terminating load-balancer, the probes may need to behave
+  ## like the balancer to prevent HTTP 302 responses. According to the Kubernetes
+  ## docs, 302 should be considered "successful", but this issue on GitHub
+  ## (https://github.com/kubernetes/kubernetes/issues/47893) shows that it isn't.
+  ## E.g.
+  ## httpHeaders:
+  ## - name: X-Forwarded-Proto
+  ##   value: https
+  ##
+#    httpHeaders: [ ]
+#  initialDelaySeconds: 120
+#  periodSeconds: 10
+#  timeoutSeconds: 5
+#  failureThreshold: 6
+#  successThreshold: 1
+
+## @param readinessProbe.enabled Enable readinessProbe
+## @skip readinessProbe.httpGet
+## @param readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+## @param readinessProbe.periodSeconds Period seconds for readinessProbe
+## @param readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+## @param readinessProbe.failureThreshold Failure threshold for readinessProbe
+## @param readinessProbe.successThreshold Success threshold for readinessProbe
+##
+readinessProbe:
+  enabled: false
+  #  httpGet:
+  #    path: /wp-login.php
+  #    port: http
+  #    scheme: HTTP
+  ## If using an HTTPS-terminating load-balancer, the probes may need to behave
+  ## like the balancer to prevent HTTP 302 responses. According to the Kubernetes
+  ## docs, 302 should be considered "successful", but this issue on GitHub
+  ## (https://github.com/kubernetes/kubernetes/issues/47893) shows that it isn't.
+  ## E.g.
+  ## httpHeaders:
+  ## - name: X-Forwarded-Proto
+  ##   value: https
+  ##
+#    httpHeaders: [ ]
+#  initialDelaySeconds: 30
+#  periodSeconds: 10
+#  timeoutSeconds: 5
+#  failureThreshold: 6
+#  successThreshold: 1

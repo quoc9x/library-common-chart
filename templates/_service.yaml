@@ -1,0 +1,30 @@
+{{- define "common.service" -}}
+  {{- $common := dict "Values" .Values.common -}}
+  {{- $noCommon := omit .Values "common" -}}
+  {{- $overrides := dict "Values" $noCommon -}}
+  {{- $noValues := omit . "Values" -}}
+  {{- with merge $noValues $overrides $common -}}
+  {{- if .Values.service.specs -}}
+apiVersion: v1
+kind: Service
+  {{ template "common.metadata" . }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    {{- range $spec := .Values.service.specs }}
+    - name: {{ $spec.name }}
+      port: {{ $spec.port }}
+      protocol: {{ $spec.protocol | default "TCP" }}
+      {{- if $spec.containerPort }}
+      targetPort: {{ $spec.containerPort }}
+      {{- end}}
+      {{- if  $spec.nodePort }}
+      nodePort: {{  $spec.nodePort }}
+  {{- end }}
+  {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "common.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- end -}}
+  {{- end -}}
+  {{- end -}}
